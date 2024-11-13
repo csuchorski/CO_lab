@@ -4,7 +4,7 @@
 #include <vector>
 #include <queue>
 #include <climits>
-#include <random>
+#include <algorithm>
 
 std::vector<int> dijkstra(const std::vector<std::vector<std::pair<int, int>>> &graph, int start)
 {
@@ -37,17 +37,24 @@ std::vector<int> dijkstra(const std::vector<std::vector<std::pair<int, int>>> &g
     return distances;
 }
 
-std::vector<int> generate_landmarks(int N)
+std::vector<int> generate_landmarks(const std::vector<int> &degrees, int N)
 {
+    std::vector<std::pair<int, int>> enumerated_degrees(N);
+    for (int i = 0; i < N; i++)
+    {
+        enumerated_degrees[i] = {i, degrees[i]};
+    }
+
+    std::sort(enumerated_degrees.begin(), enumerated_degrees.end(), [](const std::pair<int, int> &a, const std::pair<int, int> &b)
+              { return a.second > b.second; });
+
     std::vector<int> landmarks;
     int n_landmarks = N / 10000;
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<> dis(0, N - 1);
     for (int i = 0; i < n_landmarks; i++)
     {
-        landmarks.push_back(dis(gen));
+        landmarks.push_back(enumerated_degrees[i].first);
     }
+
     return landmarks;
 }
 
@@ -118,11 +125,6 @@ int main()
             degrees[i]++;
         }
     }
-    std::vector<std::pair<int, int>> enumerated_degrees(N);
-    for (int i = 0; i < N; i++)
-    {
-        enumerated_degrees[i] = {i, degrees[i]};
-    }
 
     int Q;
     std::cin >> Q;
@@ -134,7 +136,8 @@ int main()
         queries[i] = std::make_pair(start, end);
     }
 
-    std::vector<int> landmarks = generate_landmarks(N);
+    std::vector<int> landmarks = generate_landmarks(degrees, N);
+
     std::vector<std::vector<int>> landmark_distances;
     for (const int &landmark : landmarks)
     {
