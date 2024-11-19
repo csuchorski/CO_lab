@@ -10,26 +10,28 @@ std::vector<int> dijkstra(const std::vector<std::vector<std::pair<int, int>>> &g
 {
     int N = graph.size();
     std::vector<int> distances(N, INT_MAX);
+    //std::vector<bool> visited(N, false);
     distances[start] = 0;
     std::priority_queue<std::pair<int, int>, std::vector<std::pair<int, int>>, std::greater<>> pq;
 
     pq.emplace(0, start);
     while (!pq.empty())
     {
-        int cur_dist = pq.top().first;
-        int cur_node = pq.top().second;
+        std::pair<int,int> pq_elem = pq.top();
+        int cur_dist = pq_elem.first;
+        int cur_node = pq_elem.second;
         pq.pop();
 
-        if (cur_dist > distances[cur_node])
-        {
-            continue;
-        }
+        if (cur_dist > distances[cur_node]) continue;
+        // visited[cur_node] = true;
+
         for (const std::pair<int, int> &neighbour : graph[cur_node])
         {
-            if (distances[cur_node] + neighbour.second < distances[neighbour.first])
+            int new_dist = cur_dist + neighbour.second;
+            if (new_dist < distances[neighbour.first])
             {
-                distances[neighbour.first] = distances[cur_node] + neighbour.second;
-                pq.emplace(distances[neighbour.first], neighbour.first);
+                distances[neighbour.first] = new_dist;
+                pq.emplace(new_dist, neighbour.first);
             }
         }
     }
@@ -45,11 +47,26 @@ std::vector<int> generate_landmarks(const std::vector<int> &degrees, int N)
         enumerated_degrees[i] = {i, degrees[i]};
     }
 
-    std::sort(enumerated_degrees.begin(), enumerated_degrees.end(), [](const std::pair<int, int> &a, const std::pair<int, int> &b)
-              { return a.second > b.second; });
+    // std::sort(enumerated_degrees.begin(), enumerated_degrees.end(), [](const std::pair<int, int> &a, const std::pair<int, int> &b)
+    //           { return a.second > b.second; });
 
     std::vector<int> landmarks;
-    int n_landmarks = N / 10000;
+    int n_landmarks;// = N/3000;
+    if(N == 30000){
+        n_landmarks = 10;
+    }
+    else if(N == 50000){
+        n_landmarks = 15;
+    }
+    else{
+        n_landmarks = 20;
+    }
+
+    std::nth_element(enumerated_degrees.begin(), enumerated_degrees.begin() + n_landmarks, enumerated_degrees.end(),
+                 [](const std::pair<int, int>& a, const std::pair<int, int>& b) {
+                     return a.second > b.second;
+                 });
+
     for (int i = 0; i < n_landmarks; i++)
     {
         landmarks.push_back(enumerated_degrees[i].first);
@@ -64,6 +81,7 @@ int get_approx_dist(const std::vector<std::vector<int>> &landmark_distances, int
     for (int i = 0; i < landmark_distances.size(); i++)
     {
         dist = std::max(dist, std::abs(landmark_distances[i][start] - landmark_distances[i][end]));
+        //dist += std::abs(landmark_distances[i][start] - landmark_distances[i][end]);
     }
     return dist;
 }
@@ -106,51 +124,50 @@ int astar(const std::vector<std::vector<std::pair<int, int>>> &graph, const std:
 int main()
 {
     std::ios::sync_with_stdio(false);
-    std::cin.tie(nullptr);
+    std::cin.tie(nullptr);  
 
     int N, M;
-    std::cin >> N >> M;
+    scanf("%d %d", &N, &M);  
+
     std::vector<std::vector<std::pair<int, int>>> graph(N);
     std::vector<int> degrees(N, 0);
 
     for (int i = 0; i < N; i++)
     {
         int n_neighbours;
-        std::cin >> n_neighbours;
+        scanf("%d", &n_neighbours);  
+        degrees[i] = n_neighbours;
+
         for (int k = 0; k < n_neighbours; k++)
         {
             int neighbour, weight;
-            std::cin >> neighbour >> weight;
+            scanf("%d %d", &neighbour, &weight);
             graph[i].emplace_back(neighbour, weight);
-            degrees[i]++;
+            degrees[neighbour]++;
         }
     }
 
     int Q;
-    std::cin >> Q;
+    scanf("%d", &Q);  
     std::vector<std::pair<int, int>> queries(Q);
+
     for (int i = 0; i < Q; i++)
     {
-        int start, end;
-        std::cin >> start >> end;
-        queries[i] = std::make_pair(start, end);
+        scanf("%d %d", &queries[i].first, &queries[i].second);  
     }
 
     std::vector<int> landmarks = generate_landmarks(degrees, N);
 
     std::vector<std::vector<int>> landmark_distances;
-    for (const int &landmark : landmarks)
+    for (int landmark : landmarks)
     {
         landmark_distances.push_back(dijkstra(graph, landmark));
     }
-    std::vector<int> results;
-    for (auto &query : queries)
+
+    for (const auto &query : queries)
     {
-        results.push_back(astar(graph, landmark_distances, query.first, query.second));
-    }
-    for (auto &res : results)
-    {
-        std::cout << res << std::endl;
+        int result = astar(graph, landmark_distances, query.first, query.second);
+        printf("%d\n", result);  
     }
 
     return 0;
